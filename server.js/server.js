@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost/myapp', {
+mongoose.connect('mongodb+srv://dhruvvayugundla:DDD123ddd@cluster1.j4w98fr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => {
@@ -34,6 +34,28 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // Define routes
+app.post('/createNewConvo', async (req, res) => {
+  try {
+    const { name, id, input, ai } = req.body;
+    let user = await User.findOne({ name });
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    if (user.threads.has(id)) {
+      return res.status(400).send('Conversation ID already exists');
+    }
+
+    user.threads.set(id, [{ input, ai }]);
+    await user.save();
+    res.status(200).send(user.threads);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error creating new conversation');
+  }
+});
+
 app.post('/', async (req, res) => {
   const { input, ai, name, id } = req.body;
 
@@ -96,6 +118,53 @@ app.post('/update', async (req, res) => {
     res.status(500).send('Error updating data');
   }
 
+});
+
+const userSchema1 = new mongoose.Schema({
+  id: Number,
+  name: String,
+  password: String,
+  designation: String,
+});
+
+const User1 = mongoose.model('User1', userSchema1);
+
+// Define Routes
+app.post('/registration', async (req, res) => {
+  const { id, name, password, designation } = req.body;
+
+  const newUser = new User1({
+    id,
+    name,
+    password,
+    designation,
+  });
+
+  try {
+    await newUser.save();
+    res.status(201).send('User registered successfully');
+  } catch (error) {
+    res.status(400).send('Error registering user');
+  }
+});
+
+app.post('/login', async (req, res) => {
+  const { name, password } = req.body;
+
+  try {
+    const user = await User1.findOne({ name });
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    if (password===user.password) {
+      return res.status(401).send('Invalid password');
+    }
+
+    res.status(200).send('Login successful');
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 
 // Start the server
